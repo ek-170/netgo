@@ -1,9 +1,18 @@
-.PHONY: up
-up:
-		@docker compose -f ./docker/docker-compose.yml up -d
-.PHONY: down
-down:
-		@docker compose -f ./docker/docker-compose.yml down
-.PHONY: down-all
-down-all:
-		@docker compose -f ./docker/docker-compose.yml down --rmi all --volumes
+.PHONY: d-build d-run d-destruct
+
+d-build:
+		docker build -t netgo ./docker
+
+d-run:
+		docker run -t -d --name netgo \
+			--cap-add=NET_ADMIN \
+			--log-opt max-size=10m \
+			--log-opt max-file=5 \
+			-v ./:/home/tcp \
+			-p 8080:8080 \
+			netgo
+
+d-destruct:
+		docker stop netgo
+		docker rm netgo
+		docker rmi netgo

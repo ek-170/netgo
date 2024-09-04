@@ -1,11 +1,17 @@
-# tcp-server
+# netgo
 
 ### 機能
 
+#### Server機能
+
 - 指定したポートで接続を待ち受ける
-- シーケンス番号によるpacket loss 検知
-- セグメントごとのチェックサムを介してエラー検出
-- 再送信
+- TCP/UDPで接続可能
+- 受信内容を標準出力に表示
+
+#### Clinet機能
+
+- 指定したホスト/ポートにパケットを送信
+- TCP/UDPで送信可能
 
 ### TCP Header
 
@@ -31,10 +37,6 @@
       :                                                               |
       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
-### Arch Design
-
-- Socket確立
--
 
 ### 参考リンク
 
@@ -43,3 +45,4 @@
 - [TCP/IP チェックサムの仕組み](https://alpha-netzilla.blogspot.com/2011/08/network.html)
 - [The Pseudo-Header in TCP](https://www.baeldung.com/cs/pseudo-header-tcp)
 - [PF_PACKETの仕組み](https://enakai00.hatenablog.com/entry/20120522/1337650181)
+- [KLab Expert Camp](https://drive.google.com/drive/folders/1k2vymbC3vUk5CTJbay4LLEdZ9HemIpZe)

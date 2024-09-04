@@ -1,15 +1,21 @@
 FROM ubuntu:22.04
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-  iproute2 \
-  tcpdump \
-  net-tools \
+  build-essential \
   golang-go \
-  sudo \
+  iproute2 \
+  iputils-ping \
   make \
+  man-db \
+  net-tools \
+  netcat-openbsd \
+  sudo \
+  tcpdump \
   && apt-get clean \
-  && rm -rf /var/lib/apt/lists/* \
-  && useradd -m tcp
+  && rm -rf /var/lib/apt/lists/*
 
-USER tcp
 WORKDIR /home/tcp
+COPY ./docker-entrypoint.sh /
+
+ENTRYPOINT ["/docker-entrypoint.sh"]
+CMD [ "bash" ]
