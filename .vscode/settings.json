@@ -2,7 +2,8 @@
   "files.associations": {
     "cstdint": "cpp",
     "pthread.h": "c",
-    "signal.h": "c"
+    "signal.h": "c",
+    "platform.h": "c"
   },
   "C_Cpp.errorSquiggles": "enabledIfIncludesResolve"
 }

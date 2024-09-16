@@ -1,4 +1,5 @@
 #include <stdio.h>
+
 #include "net.h"
 #include "util.h"
 #include "platform/linux/platform.h"

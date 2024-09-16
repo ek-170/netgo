@@ -1,3 +1,6 @@
+#ifndef NET_H
+#define NET_H
+
 #include <stdint.h>
 #include <stddef.h>
 
@@ -65,3 +68,5 @@ extern void
 net_shutdown(void);
 extern int
 net_init(void);
+
+#endif
