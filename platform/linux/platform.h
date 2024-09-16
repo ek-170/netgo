@@ -4,6 +4,9 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <signal.h>
+
+#define INTR_IRQ_BASE (SIGRTMIN + 1)
 
 /*
  * Memory
@@ -48,3 +51,14 @@ mutex_unlock(mutex_t *mutex)
 }
 
 #endif
+
+/*
+ * Interrupt
+ */
+
+extern int
+intr_request_irq(unsigned int irq, int (*handler)(unsigned int irq, void *id), int flags, const char *name, void *dev);
+extern int
+intr_run(void);
+extern int
+intr_init(void);

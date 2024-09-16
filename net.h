@@ -20,6 +20,8 @@
 #define NET_DEVICE_IS_UP(x) ((x)->flags & NET_DEVICE_FLAG_UP)
 #define NET_DEVICE_STATE(x) (NET_DEVICE_IS_UP(x) ? "up" : "down")
 
+#define INTR_IRQ_SHARED 0x0001
+
 struct net_device
 {
   struct net_device *next;           // next device pointer
