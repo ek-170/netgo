@@ -12,13 +12,13 @@
 static inline void *
 memory_alloc(size_t size)
 {
-    return calloc(1, size);
+  return calloc(1, size);
 }
 
 static inline void
 memory_free(void *ptr)
 {
-    free(ptr);
+  free(ptr);
 }
 
 /*
@@ -32,19 +32,19 @@ typedef pthread_mutex_t mutex_t;
 static inline int
 mutex_init(mutex_t *mutex)
 {
-    return pthread_mutex_init(mutex, NULL);
+  return pthread_mutex_init(mutex, NULL);
 }
 
 static inline int
 mutex_lock(mutex_t *mutex)
 {
-    return pthread_mutex_lock(mutex);
+  return pthread_mutex_lock(mutex);
 }
 
 static inline int
 mutex_unlock(mutex_t *mutex)
 {
-    return pthread_mutex_unlock(mutex);
+  return pthread_mutex_unlock(mutex);
 }
 
 #endif

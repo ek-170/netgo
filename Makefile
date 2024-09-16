@@ -1,10 +1,12 @@
-APPS = 
+APPS =
 
-DRIVERS = 
+DRIVERS = driver/dummy.o \
 
-OBJS = util.o \
+OBJS = 	util.o \
+		net.o \
 
 TESTS = test/step0.exe \
+		test/step1.exe \
 
 CFLAGS := $(CFLAGS) -g -W -Wall -Wno-unused-parameter -iquote .
 
@@ -36,3 +38,22 @@ $(TESTS): %.exe : %.o $(OBJS) $(DRIVERS) test/test.h
 
 clean:
 	rm -rf $(APPS) $(APPS:.exe=.o) $(OBJS) $(DRIVERS) $(TESTS) $(TESTS:.exe=.o)
+
+.PHONY: d-build d-run d-destruct
+
+d-build:
+		docker build -t netgo ./docker
+
+d-run:
+		docker run -t -d --name netgo \
+			--cap-add=NET_ADMIN \
+			--log-opt max-size=10m \
+			--log-opt max-file=5 \
+			-v ./:/home/tcp \
+			-p 8080:8080 \
+			netgo
+
+d-destruct:
+		docker stop netgo
+		docker rm netgo
+		docker rmi netgo
