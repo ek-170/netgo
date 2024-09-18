@@ -25,6 +25,12 @@
 
 #define INTR_IRQ_SHARED 0x0001
 
+/* NOTE: use same value as the Ethernet types */
+#define NET_PROTOCOL_TYPE_IP 0x0800
+#define NET_PROTOCOL_TYPE_ARP 0x0806
+#define NTT_PROTOCOL_TYPE_IPV6 0x86dd
+
+// pseudo network device
 struct net_device
 {
   struct net_device *next;           // next device pointer
@@ -38,11 +44,12 @@ struct net_device
   uint8_t addr[NET_DEVICE_ADDR_LEN]; // device address
   union
   {
+    // only one peer or broadcast address exists
     uint8_t peer[NET_DEVICE_ADDR_LEN];
     uint8_t broadcast[NET_DEVICE_ADDR_LEN];
   };
-  struct net_device_ops *ops;
-  void *priv;
+  struct net_device_ops *ops; // device operations
+  void *priv; // private area
 };
 
 struct net_device_ops
@@ -58,6 +65,9 @@ extern int
 net_device_register(struct net_device *dev);
 extern int
 net_device_output(struct net_device *dev, uint16_t type, const uint8_t *data, size_t len, const void *dst);
+
+extern int
+net_protocol_register(uint16_t type, void (*handler)(const uint8_t *data, size_t len, struct net_device *dev));
 
 extern int
 net_input_handler(uint16_t type, const uint8_t *data, size_t len, struct net_device *dev);

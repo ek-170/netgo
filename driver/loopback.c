@@ -24,6 +24,8 @@ struct loopback_queue_entry
   uint8_t data[]; /* flexible array member */
 };
 
+// send data to queue which exists in net_device.priv field(loopback)
+// and, raise irq by signal instead of hardware interruption
 static int
 loopback_transmit(struct net_device *dev, uint16_t type, const uint8_t *data, size_t len, const void *dst)
 {
@@ -55,6 +57,7 @@ loopback_transmit(struct net_device *dev, uint16_t type, const uint8_t *data, si
   return 0;
 }
 
+// handle isr and pop data from priv queue, then pass data net input handler
 static int
 loopback_isr(unsigned int irq, void *id)
 {
@@ -81,6 +84,7 @@ static struct net_device_ops loopback_ops = {
     .transmit = loopback_transmit,
 };
 
+// loopback device initialization
 struct net_device *
 loopback_init(void)
 {

@@ -15,7 +15,7 @@
 
 /*
  * Logging
- 
+
  */
 
 int
@@ -101,6 +101,7 @@ queue_push(struct queue_head *queue, void *data)
         return NULL;
     }
     entry = memory_alloc(sizeof(*entry));
+
     if (!entry) {
         return NULL;
     }

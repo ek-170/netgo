@@ -55,6 +55,7 @@ int intr_request_irq(unsigned int irq, int (*handler)(unsigned int irq, void *de
   return 0;
 }
 
+// initialize signal imitates interruption
 int intr_init(void)
 {
   tid = pthread_self();
