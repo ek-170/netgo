@@ -23,8 +23,6 @@
 #define NET_DEVICE_IS_UP(x) ((x)->flags & NET_DEVICE_FLAG_UP)
 #define NET_DEVICE_STATE(x) (NET_DEVICE_IS_UP(x) ? "up" : "down")
 
-#define INTR_IRQ_SHARED 0x0001
-
 /* NOTE: use same value as the Ethernet types */
 #define NET_PROTOCOL_TYPE_IP 0x0800
 #define NET_PROTOCOL_TYPE_ARP 0x0806
@@ -71,6 +69,8 @@ net_protocol_register(uint16_t type, void (*handler)(const uint8_t *data, size_t
 
 extern int
 net_input_handler(uint16_t type, const uint8_t *data, size_t len, struct net_device *dev);
+extern int
+net_softirq_handler(void);
 
 extern int
 net_run(void);

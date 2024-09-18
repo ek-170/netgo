@@ -52,12 +52,13 @@ loopback_transmit(struct net_device *dev, uint16_t type, const uint8_t *data, si
   queue_push(&PRIV(dev)->queue, entry);
   num = PRIV(dev)->queue.num;
   mutex_unlock(&PRIV(dev)->mutex);
-  debugf("queue pushed (num:%u), dev=%s, type=0x%04x, len=%zd", num, dev->name, type, len);
+  debugf("loopback queue pushed (num:%u), dev=%s, type=0x%04x, len=%zd", num, dev->name, type, len);
+  // hardware IRQ
   intr_raise_irq(PRIV(dev)->irq);
   return 0;
 }
 
-// handle isr and pop data from priv queue, then pass data net input handler
+// handle isr and pop data from priv queue, then pass data to net input handler
 static int
 loopback_isr(unsigned int irq, void *id)
 {
@@ -66,12 +67,14 @@ loopback_isr(unsigned int irq, void *id)
 
   dev = (struct net_device *)id;
   mutex_lock(&PRIV(dev)->mutex);
-  while (1) {
+  while (1)
+  {
     entry = queue_pop(&PRIV(dev)->queue);
-    if (!entry){
+    if (!entry)
+    {
       break;
     }
-    debugf("queue popped (num:%u), dev=%s, type=0x%04x, len=%zd", PRIV(dev)->queue.num, dev->name, entry->type, entry->len);
+    debugf("loopback queue popped (num:%u), dev=%s, type=0x%04x, len=%zd", PRIV(dev)->queue.num, dev->name, entry->type, entry->len);
     debugdump(entry->data, entry->len);
     net_input_handler(entry->type, entry->data, entry->len, dev);
     memory_free(entry);

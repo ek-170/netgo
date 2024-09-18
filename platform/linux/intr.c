@@ -22,6 +22,7 @@ static sigset_t sigmask;
 static pthread_t tid;
 static pthread_barrier_t barrier;
 
+// register new irq and handler
 int intr_request_irq(unsigned int irq, int (*handler)(unsigned int irq, void *dev), int flags, const char *name, void *dev)
 {
   struct irq_entry *entry;
@@ -62,9 +63,11 @@ int intr_init(void)
   pthread_barrier_init(&barrier, NULL, 2);
   sigemptyset(&sigmask);
   sigaddset(&sigmask, SIGHUP);
+  sigaddset(&sigmask, SIGUSR1);
   return 0;
 }
 
+// func which go on another thread for interrupting signal
 static void *
 intr_thread(void *arg)
 {
@@ -85,6 +88,9 @@ intr_thread(void *arg)
     {
     case SIGHUP:
       terminate = 1;
+      break;
+    case SIGUSR1:
+      net_softirq_handler();
       break;
     default:
       for (entry = irqs; entry; entry = entry->next)
