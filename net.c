@@ -15,7 +15,7 @@ struct net_protocol
   struct net_protocol *next; // next protocol
   uint16_t type;
   struct queue_head queue; /* input queue */
-  void (*handler)(const uint8_t *data, size_t len, struct net_device *dev);
+  void (*handler)(const uint8_t *data, size_t len, struct net_device *dev); // uint8 data[]は暗黙的にuint8_t *にキャストされる
 };
 
 // data which included metadata pushed protocol's input queue
@@ -192,6 +192,7 @@ int net_input_handler(uint16_t type, const uint8_t *data, size_t len, struct net
 }
 
 // handler which called when recieved software irq
+// this func convey data to protocol handler
 int net_softirq_handler(void)
 {
   struct net_protocol *proto;
