@@ -14,7 +14,7 @@ struct net_protocol
 {
   struct net_protocol *next; // next protocol
   uint16_t type;
-  struct queue_head queue; /* input queue */
+  struct queue_head queue;                                                  /* input queue */
   void (*handler)(const uint8_t *data, size_t len, struct net_device *dev); // uint8 data[]は暗黙的にuint8_t *にキャストされる
 };
 
@@ -99,6 +99,41 @@ net_device_close(struct net_device *dev)
   dev->flags &= ~NET_DEVICE_FLAG_UP;
   infof("dev=%s, state=%s", dev->name, NET_DEVICE_STATE(dev));
   return 0;
+}
+
+/* NOTE: must not be call after net_run() */
+int net_device_add_iface(struct net_device *dev, struct net_iface *iface)
+{
+  struct net_iface *entry;
+
+  for (entry = dev->ifaces; entry; entry->next)
+  {
+    if (entry->family == iface->family)
+    {
+      // for simplicity, only one iface can be added per family
+      errorf("already exists, dev=%s, family=%d", dev->name, entry->family);
+      return -1;
+    }
+  }
+
+  iface->dev = dev;
+  iface->next = dev->ifaces;
+  dev->ifaces = iface;
+  return 0;
+}
+struct net_iface *
+net_device_get_iface(struct net_device *dev, int family)
+{
+  struct net_iface *entry;
+
+  for (entry = dev->ifaces; entry; entry = entry->next)
+  {
+    if (entry->family == family)
+    {
+      break;
+    }
+  }
+  return entry;
 }
 
 // call net_device->ops->transmit(...) to transmit data to specified device
