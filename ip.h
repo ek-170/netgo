@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <sys/types.h>
 
 #include "net.h"
 
@@ -21,6 +22,13 @@ struct ip_iface
   struct net_iface iface;
   struct ip_iface *next;
   ip_addr_t unicast;
+  /*
+    e.g.
+      unicast: 0xC0A80164(192.168.1.100)
+      netmask: 0xFFFFFF00(255.255.255.0)
+      unicast & netmask  -> network portion
+      unicast & ~netmask -> host portion
+   */
   ip_addr_t netmask;
   ip_addr_t broadcast;
 };
@@ -38,6 +46,9 @@ extern int
 ip_iface_register(struct net_device *dev, struct ip_iface *iface);
 extern struct ip_iface *
 ip_iface_select(ip_addr_t addr);
+
+extern ssize_t
+ip_output(uint8_t protocol, const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst);
 
 extern int
 ip_init(void);
