@@ -24,11 +24,20 @@ struct ip_hdr
   uint8_t options[]; // options
 };
 
+// almost same as net_protocol except not has queue
+struct ip_protocol
+{
+  struct ip_protocol *next;
+  uint8_t type;
+  void (*handler)(const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst, struct ip_iface *iface);
+};
+
 const ip_addr_t IP_ADDR_ANY = 0x00000000;       /* 0.0.0.0 */
 const ip_addr_t IP_ADDR_BROADCAST = 0xffffffff; /* 255.255.255.255 */
 
 /* NOTE: if you want to add/delete the entries after net_run(), you need to protect these lists with a mutex. */
 static struct ip_iface *ifaces;
+static struct ip_protocol *protocols;
 
 int ip_addr_pton(const char *p, ip_addr_t *n)
 {
@@ -80,7 +89,7 @@ ip_dump(const uint8_t *data, size_t len)
   fprintf(stderr, "        vhl: 0x%02x [v: %u, hl: %u, (%u)]\n", hdr->vhl, v, hl, hlen);
   fprintf(stderr, "        tos: 0x%02x\n", hdr->tos);
   total = ntoh16(hdr->total); // 多バイト長のデータはエンディアンをリトルエンディアンに変換
-  fprintf(stderr, "      total: %u (payload: %u)\n", total, total - len);
+  fprintf(stderr, "      total: %u (payload: %u)\n", total, total - hlen);
   fprintf(stderr, "         id: %u\n", ntoh16(hdr->id));
   offset = ntoh16(hdr->offset);
   fprintf(stderr, "     offset: 0x%04x [flags=%x, offset=%u]\n", offset, (offset & 0xe000) >> 13, (offset & 0x1fff));
@@ -169,6 +178,36 @@ ip_iface_select(ip_addr_t addr)
   return NULL;
 }
 
+/* NOTE: must not be call after net_run() */
+int ip_protocol_register(uint8_t type, void (*handler)(const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst, struct ip_iface *iface))
+{
+  struct ip_protocol *entry;
+
+  for (entry = protocols; entry != NULL; entry = entry->next)
+  {
+    if (entry->type == type)
+    {
+      errorf("%u is already registered", entry->type);
+      return -1;
+    }
+  }
+
+  entry = memory_alloc(sizeof(*entry));
+  if (!entry)
+  {
+    errorf("memory allocation of ip protocol is failed");
+    return -1;
+  }
+  entry->next = protocols;
+  entry->handler = handler;
+  entry->type = type;
+
+  protocols = entry;
+
+  infof("registered, type=%u", entry->type);
+  return 0;
+}
+
 // ip input handler, this called when recieve packet from net device
 // data is uint8_t data[]
 // len is net_protocol_queue_entry.len
@@ -184,7 +223,7 @@ ip_input(const uint8_t data[], size_t len, struct net_device *dev)
 
   if (len < IP_HDR_SIZE_MIN)
   {
-    errorf("header size is too short: %zu", len);
+    errorf("ip header size is too short: %zu", len);
     return;
   }
   hdr = (struct ip_hdr *)data;
@@ -237,6 +276,18 @@ ip_input(const uint8_t data[], size_t len, struct net_device *dev)
   }
   debugf("dev=%s, iface=%s, protocol=%u, total=%u", dev->name, ip_addr_ntop(iface->unicast, addr, sizeof(addr)), hdr->protocol, total);
   ip_dump(data, total);
+
+  struct ip_protocol *entry;
+  for (entry = protocols; entry; entry = entry->next)
+  {
+    if (entry->type == hdr->protocol)
+    {
+      entry->handler(data, len, hdr->src, hdr->dst, iface);
+      return;
+    }
+  }
+
+  /* unsupported protocol*/
 }
 
 // data is ip header + payload
@@ -280,9 +331,13 @@ ip_output_core(struct ip_iface *iface, uint8_t protocol, const uint8_t *data, si
   hdr->vhl = (IP_VERSION_IPV4 << 4) | (hlen >> 2);
   hdr->tos = 0;
   total = hlen + len; // header + payload
+
+  // only translate multi bytes fields order
+  // don't reorder IP Header entirely
   hdr->total = hton16(total);
   hdr->id = hton16(id);
   hdr->offset = hton16(offset);
+
   hdr->ttl = 0xff;
   hdr->protocol = protocol;
   hdr->sum = 0; // according to RFC791, checksum field itself must be 0 when calc checksum
