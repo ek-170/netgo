@@ -1,8 +1,12 @@
 #include <stdint.h>
 #include <stddef.h>
+#include <string.h>
+
 #include "util.h"
 #include "ip.h"
 #include "icmp.h"
+
+#define ICMP_BUFSIZ IP_PAYLOAD_SIZE_MAX
 
 struct icmp_hdr
 {
@@ -82,21 +86,23 @@ icmp_dump(const uint8_t *data, size_t len)
   funlockfile(stderr);
 }
 
+// data is ip payload (except header)
+// len is length of icmp data
 void icmp_input(const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst, struct ip_iface *iface)
 {
   struct icmp_hdr *hdr;
   char addr1[IP_ADDR_STR_LEN];
   char addr2[IP_ADDR_STR_LEN];
 
-  if (len < ICMP_HDR_SIZE)
+  if (len < sizeof(*hdr))
   {
     errorf("icmp header size is too short: %zu", len);
     return;
   }
 
+  hdr = (struct icmp_hdr *)data;
   // pass a pointer to the beginning of the header in uint16_t for processing 16 bits at a time
-  uint16_t sum = cksum16((uint16_t *)hdr, len, 0);
-  if (sum != 0)
+  if (cksum16((uint16_t *)hdr, len, 0) != 0)
   {
     errorf("checksum validation failed");
     return;
@@ -104,11 +110,45 @@ void icmp_input(const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst, s
 
   debugf("%s => %s, len=%zu", ip_addr_ntop(src, addr1, sizeof(addr1)), ip_addr_ntop(dst, addr2, sizeof(addr2)), len);
   icmp_dump(data, len);
+  switch (hdr->type)
+  {
+  case ICMP_TYPE_ECHO:
+    icmp_output(ICMP_TYPE_ECHOREPLY, hdr->code, hdr->values, data, len, iface->unicast, src);
+    break;
+  default:
+    // ignore
+    break;
+  }
+}
+
+int icmp_output(uint8_t type, uint8_t code, uint32_t values, const uint8_t *data, size_t len, ip_addr_t src, ip_addr_t dst)
+{
+  uint8_t buf[ICMP_BUFSIZ];
+  struct icmp_hdr *hdr;
+  size_t msg_len; // length of ICMP msg(header + data)
+  char addr1[IP_ADDR_STR_LEN];
+  char addr2[IP_ADDR_STR_LEN];
+
+  hdr = (struct icmp_hdr *)buf;
+
+  hdr->code = code;
+  hdr->type = type;
+  hdr->values = values;
+  memcpy(hdr + 1, data, len);
+  msg_len = sizeof(*hdr) + len;
+  hdr->sum = 0;
+  // ICMP's checksum process is included header and data
+  hdr->sum = cksum16((uint16_t *)hdr, msg_len, 0);
+
+  debugf("%s => %s, len=%zu", ip_addr_ntop(src, addr1, sizeof(addr1)), ip_addr_ntop(dst, addr2, sizeof(addr2)), msg_len);
+  icmp_dump((uint8_t *)hdr, msg_len);
+
+  return ip_output(IP_PROTOCOL_ICMP, buf, msg_len, src, dst);
 }
 
 int icmp_init(void)
 {
-  if (ip_protocol_register(IP_PROTOCOL_ICMP, icmp_input) == 1)
+  if (ip_protocol_register(IP_PROTOCOL_ICMP, icmp_input) == -1)
   {
     errorf("failed to init icmp protocol handler");
     return -1;

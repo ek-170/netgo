@@ -209,7 +209,7 @@ int ip_protocol_register(uint8_t type, void (*handler)(const uint8_t *data, size
 }
 
 // ip input handler, this called when recieve packet from net device
-// data is uint8_t data[]
+// data is uint8_t data[], data is ip header and payload
 // len is net_protocol_queue_entry.len
 // dev is device recieved packet
 static void
@@ -235,7 +235,7 @@ ip_input(const uint8_t data[], size_t len, struct net_device *dev)
     return;
   }
 
-  hlen = sizeof(*data);
+  hlen = (hdr->vhl & 0x0f) << 2;
   if (len < hlen)
   {
     errorf("header data is too short");
@@ -250,8 +250,7 @@ ip_input(const uint8_t data[], size_t len, struct net_device *dev)
   }
 
   // pass a pointer to the beginning of the header in uint16_t for processing 16 bits at a time
-  uint16_t sum = cksum16((uint16_t *)hdr, len, 0);
-  if (sum != 0)
+  if (cksum16((uint16_t *)hdr, len, 0) != 0)
   {
     errorf("checksum validation failed");
     return;
@@ -282,7 +281,7 @@ ip_input(const uint8_t data[], size_t len, struct net_device *dev)
   {
     if (entry->type == hdr->protocol)
     {
-      entry->handler(data, len, hdr->src, hdr->dst, iface);
+      entry->handler((uint8_t *)hdr + hlen, total - hlen, hdr->src, hdr->dst, iface);
       return;
     }
   }
