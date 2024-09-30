@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "net.h"
+#include "arp.h"
 #include "ip.h"
 #include "util.h"
 #include "platform/linux/platform.h"
@@ -289,6 +290,11 @@ int net_init(void)
   if (intr_init() == -1)
   {
     errorf("intr_init() failed");
+    return -1;
+  }
+  if (arp_init() == -1)
+  {
+    errorf("arp_init() failed");
     return -1;
   }
   if (ip_init() == -1)
