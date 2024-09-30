@@ -27,7 +27,7 @@ int intr_request_irq(unsigned int irq, int (*handler)(unsigned int irq, void *de
 {
   struct irq_entry *entry;
 
-  debugf("ifq=%u, flags=%d, name=%s", irq, flags, name);
+  debugf("irq=%u, flags=%d, name=%s", irq, flags, name);
   for (entry = irqs; entry; entry = entry->next)
   {
     if (entry->irq == irq)

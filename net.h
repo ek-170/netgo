@@ -44,7 +44,7 @@ struct net_device
   uint16_t flags;                    // device flag
   uint16_t hlen;                     // header length
   uint16_t alen;                     // address length
-  uint8_t addr[NET_DEVICE_ADDR_LEN]; // device address
+  uint8_t addr[NET_DEVICE_ADDR_LEN]; // device address(hardware address)
   union
   {
     // only one peer or broadcast address exists

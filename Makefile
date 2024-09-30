@@ -7,6 +7,7 @@ OBJS = 	util.o \
 		net.o \
 		ip.o \
 		icmp.o \
+		ether.o \
 
 TESTS = test/step0.exe \
 		test/step1.exe \
@@ -20,6 +21,7 @@ TESTS = test/step0.exe \
 		test/step9.exe \
 		test/step10.exe \
 		test/step11.exe \
+		test/step12.exe \
 
 CFLAGS := $(CFLAGS) -g -W -Wall -Wno-unused-parameter -iquote .
 
@@ -27,6 +29,7 @@ ifeq ($(shell uname),Linux)
   # Linux specific settings
   BASE = platform/linux
   CFLAGS := $(CFLAGS) -pthread -iquote $(BASE)
+  DRIVERS := $(DRIVERS) $(BASE)/driver/ether_tap.o
   OBJS := $(OBJS) $(BASE)/intr.o
 endif
 
@@ -56,18 +59,18 @@ clean:
 .PHONY: d-build d-run d-destruct
 
 d-build:
-		docker build -t netgo ./docker
+		docker build -t study-net ./docker --no-cache
 
 d-run:
-		docker run -t -d --name netgo \
+		docker run -t -d --name study-net \
 			--cap-add=NET_ADMIN \
 			--log-opt max-size=10m \
 			--log-opt max-file=5 \
 			-v ./:/home/tcp \
 			-p 8080:8080 \
-			netgo
+			study-net
 
 d-destruct:
-		docker stop netgo
-		docker rm netgo
-		docker rmi netgo
+		docker stop study-net
+		docker rm study-net
+		docker rmi study-net
