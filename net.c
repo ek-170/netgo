@@ -138,6 +138,7 @@ net_device_get_iface(struct net_device *dev, int family)
 }
 
 // call net_device->ops->transmit(...) to transmit data to specified device
+// dst is hw address
 int net_device_output(struct net_device *dev, uint16_t type, const uint8_t *data, size_t len, const void *dst)
 {
   if (!NET_DEVICE_IS_UP(dev))

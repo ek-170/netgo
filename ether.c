@@ -83,8 +83,10 @@ int ether_transmit_helper(struct net_device *dev, uint16_t type, const uint8_t *
   hdr = (struct ether_hdr *)frame;
   memcpy(hdr->dst, dst, ETHER_ADDR_LEN);
   memcpy(hdr->src, dev->addr, ETHER_ADDR_LEN);
+
   hdr->type = hton16(type);
   memcpy(hdr + 1, data, len);
+
   if (len < ETHER_PAYLOAD_SIZE_MIN)
   {
     pad = ETHER_PAYLOAD_SIZE_MIN - len;
