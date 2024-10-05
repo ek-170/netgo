@@ -19,6 +19,7 @@
 #define ARP_OP_REPLY 2
 
 #define ARP_CACHE_SIZE 32
+#define ARP_CACHE_TIMEOUT 30 /* seconds */
 
 #define ARP_CACHE_STATE_FREE 0
 #define ARP_CACHE_STATE_INCOMPLETE 1
@@ -195,6 +196,25 @@ arp_cache_insert(ip_addr_t pa, const uint8_t *ha)
 }
 
 static int
+arp_request(struct net_iface *iface, ip_addr_t tpa)
+{
+  struct arp_ether_ip request;
+
+  request.hdr.hrd = hton16(ARP_HRD_ETHER);
+  request.hdr.pro = hton16(ARP_PRO_IP);
+  request.hdr.hln = ETHER_ADDR_LEN;
+  request.hdr.pln = IP_ADDR_LEN;
+  request.hdr.op = hton16(ARP_OP_REQUEST);
+  memcpy(request.sha, iface->dev->addr, ETHER_ADDR_LEN);
+  memcpy(request.spa, &((struct ip_iface *)iface)->unicast, IP_ADDR_LEN);
+  memset(request.tha, 0, ETHER_ADDR_LEN);
+  memcpy(request.tpa, &tpa, IP_ADDR_LEN);
+  debugf("dev=%s, opcode=%s(0x%04x), len=%zu", iface->dev->name, arp_opcode_ntoa(request.hdr.op), ntoh16(request.hdr.op), sizeof(request));
+  arp_dump((uint8_t *)&request, sizeof(request));
+  return net_device_output(iface->dev, ETHER_TYPE_ARP, (uint8_t *)&request, sizeof(request), iface->dev->broadcast);
+}
+
+static int
 arp_reply(struct net_iface *iface, const uint8_t *tha, ip_addr_t tpa, const uint8_t *dst)
 {
   struct arp_ether_ip reply;
@@ -286,7 +306,24 @@ int arp_resolve(struct net_iface *iface, ip_addr_t pa, uint8_t *ha)
   cache = arp_cache_select(pa);
   if (!cache)
   {
+    cache = arp_cache_alloc();
+    if (!cache)
+    {
+      mutex_unlock(&mutex);
+      errorf("arp_cache_alloc() failure");
+      return ARP_RESOLVE_ERROR;
+    }
+    cache->state = ARP_CACHE_STATE_INCOMPLETE;
+    cache->pa = pa;
+    gettimeofday(&cache->timestamp, NULL);
+    mutex_unlock(&mutex);
     debugf("cache not found, pa=%s", ip_addr_ntop(pa, addr1, sizeof(addr1)));
+    arp_request(iface, pa);
+    return ARP_RESOLVE_INCOMPLETE;
+  }
+  if (cache->state == ARP_CACHE_STATE_INCOMPLETE)
+  {
+    arp_request(iface, pa); /* just in case packet loss */
     mutex_unlock(&mutex);
     return ARP_RESOLVE_INCOMPLETE;
   }
@@ -297,11 +334,40 @@ int arp_resolve(struct net_iface *iface, ip_addr_t pa, uint8_t *ha)
   return ARP_RESOLVE_FOUND;
 }
 
+static void
+arp_timer_handler(void)
+{
+  struct arp_cache *entry;
+  struct timeval now, diff;
+
+  mutex_lock(&mutex);
+  gettimeofday(&now, NULL);
+  for (entry = caches; entry < tailof(caches); entry++)
+  {
+    if (entry->state != ARP_CACHE_STATE_FREE && entry->state != ARP_CACHE_STATE_STATIC)
+    {
+      timersub(&now, &entry->timestamp, &diff);
+      if (diff.tv_sec > ARP_CACHE_TIMEOUT)
+      {
+        arp_cache_delete(entry);
+      }
+    }
+  }
+  mutex_unlock(&mutex);
+}
+
 int arp_init(void)
 {
+  struct timeval interval = {1, 0};
+
   if (net_protocol_register(NET_PROTOCOL_TYPE_ARP, arp_input) == -1)
   {
     errorf("net_protocol_register() failure");
+    return -1;
+  }
+  if (net_timer_register(interval, arp_timer_handler) == -1)
+  {
+    errorf("net_timer_register() failure");
     return -1;
   }
   return 0;

@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
+#include <sys/time.h>
 
 #include "net.h"
 #include "arp.h"
@@ -27,8 +28,17 @@ struct net_protocol_queue_entry
   uint8_t data[];
 };
 
+struct net_timer
+{
+  struct net_timer *next;
+  struct timeval interval;
+  struct timeval last;
+  void (*handler)(void);
+};
+
 static struct net_device *devices;     // list of devices to be controlled
 static struct net_protocol *protocols; // list of protocols to be controlled
+static struct net_timer *timers;
 
 // allocate net device memory
 struct net_device *
@@ -185,6 +195,44 @@ int net_protocol_register(uint16_t type, void (*handler)(const uint8_t *data, si
   proto->next = protocols;
   protocols = proto;
   infof("registered, type=0x%04x", type);
+  return 0;
+}
+
+/* NOTE: must not be call after net_run() */
+int net_timer_register(struct timeval interval, void (*handler)(void))
+{
+  struct net_timer *timer;
+
+  timer = memory_alloc(sizeof(*timer));
+  if (!timer)
+  {
+    errorf("memory_alloc() failure");
+    return -1;
+  }
+  timer->interval = interval;
+  gettimeofday(&timer->last, NULL);
+  timer->handler = handler;
+  timer->next = timers;
+  timers = timer;
+  infof("registered: interval={%ld, %ld}", interval.tv_sec, interval.tv_usec);
+  return 0;
+}
+
+int net_timer_handler(void)
+{
+  struct net_timer *timer;
+  struct timeval now, diff;
+
+  for (timer = timers; timer; timer = timer->next)
+  {
+    gettimeofday(&now, NULL);
+    timersub(&now, &timer->last, &diff);
+    if (timercmp(&timer->interval, &diff, <) != 0)
+    { /* true (!0) or false (0) */
+      timer->handler();
+      timer->last = now;
+    }
+  }
   return 0;
 }
 
