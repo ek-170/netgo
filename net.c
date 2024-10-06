@@ -356,6 +356,11 @@ int net_init(void)
     errorf("icmp_init() failed");
     return -1;
   }
+  if (udp_init() == -1)
+  {
+    errorf("udp_init() failure");
+    return -1;
+  }
   infof("initialized");
   return 0;
 }

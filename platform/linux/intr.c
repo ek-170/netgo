@@ -131,8 +131,8 @@ intr_thread(void *arg)
           debugf("irq=%d, name=%s", entry->irq, entry->name);
           entry->handler(entry->irq, entry->dev);
         }
-        break;
       }
+      break;
     }
   }
   debugf("terminated");

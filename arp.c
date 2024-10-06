@@ -39,8 +39,8 @@ struct arp_hdr
 struct arp_cache
 {
   unsigned char state;
-  ip_addr_t pa;
-  uint8_t ha[ETHER_ADDR_LEN];
+  ip_addr_t pa;               // protocol address
+  uint8_t ha[ETHER_ADDR_LEN]; // hardware address
   struct timeval timestamp;
 };
 

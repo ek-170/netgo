@@ -52,7 +52,7 @@ loopback_transmit(struct net_device *dev, uint16_t type, const uint8_t *data, si
   queue_push(&PRIV(dev)->queue, entry);
   num = PRIV(dev)->queue.num;
   mutex_unlock(&PRIV(dev)->mutex);
-  debugf("loopback queue pushed (num:%u), dev=%s, type=0x%04x, len=%zd", num, dev->name, type, len);
+  debugf("loopback queue pushed (num:%u), dev=%s, type=0x%04x, len=%zd, irq=%d", num, dev->name, type, len, PRIV(dev)->irq);
   // hardware IRQ
   intr_raise_irq(PRIV(dev)->irq);
   return 0;
