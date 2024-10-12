@@ -380,7 +380,7 @@ ip_input(const uint8_t data[], size_t len, struct net_device *dev)
   }
 
   // pass a pointer to the beginning of the header in uint16_t for processing 16 bits at a time
-  if (cksum16((uint16_t *)hdr, len, 0) != 0)
+  if (cksum16((uint16_t *)hdr, hlen, 0) != 0)
   {
     errorf("checksum validation failed");
     return;
