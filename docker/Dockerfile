@@ -1,10 +1,11 @@
 FROM ubuntu:22.04
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
   build-essential \
   golang-go \
   iproute2 \
   iptables \
+  iptables-persistent \
   iputils-ping \
   make \
   man-db \
